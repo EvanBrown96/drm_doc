@@ -23,7 +23,7 @@ function App() {
   } else if(state[0] == 'options') {
     inner = <>
       <div className="flex flex-col items-center w-full space-y-4">
-        <RzpSelect></RzpSelect>
+        <RzpSelect defaultValue={training_params.drm}></RzpSelect>
         <InputSlider label="Max Optimal" start={1} end={7} defaultValue={training_params.max_length} onChange={(event) => dispatch({type: 'set_training_params',
               settings: {
                   max_length: event.target.value
