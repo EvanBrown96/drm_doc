@@ -6,7 +6,6 @@ import Cube from 'cubejs';
 
 let AppStateContext = createContext(null);
 let AppDispatchContext = createContext(null);
-let TrainingDataContext = createContext(null);
 
 function AppContextProvider({ children }) {
 
@@ -24,7 +23,12 @@ function AppContextProvider({ children }) {
     const [state, dispatch] = useReducer(stateReducer, initialAppState());
 
     if(state.state[0] == 'options' && state.state[1] == 'loading_data'){
-        let training_data = getCases(state.training_parameters.max_length, state.training_parameters.max_trigger, state.training_parameters.min_trigger);
+        let training_data = getCases(
+            state.training_parameters.drm, 
+            state.training_parameters.min_trigger, 
+            state.training_parameters.max_length, 
+            state.training_parameters.min_trigger, 
+            state.training_parameters.max_trigger);
         dispatch({type: "data_loaded", data: training_data});
     }   
 

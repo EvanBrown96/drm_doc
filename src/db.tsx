@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { RZPs } from './rzp_constants';
 
 export type Solution = {
     caseId: number,
@@ -20,8 +21,8 @@ export type Case = {
 
 
 
-async function readFromFile(): Promise<{cases: Case[], solutions: Solution[]}> {
-    let response = await fetch("./4c4e_db_input.csv");
+async function readFromFile(rzp): Promise<{cases: Case[], solutions: Solution[]}> {
+    let response = await fetch("/drm_doc/" + rzp + "_db_input.csv");
     let text = (await response.text()).split("\n")
     let cases: Case[] = [];
     let solutions: Solution[] = [];
@@ -59,23 +60,27 @@ function useDb(){
     
     useEffect(() => {
         (async () => {
-            let file_data = await readFromFile();
+            let file_data = {};
+            for(let r of RZPs) {
+                file_data[r] = await readFromFile(r);
+            }
             setData(file_data);
             setLoaded(true);
             console.log("finished drm data loading")
         })()
     }, []);
 
-    function getCases(max_length, max_trigger, min_trigger) {
+    function getCases(rzp, min_length, max_length, min_trigger, max_trigger) {
         if(!loaded) throw new Error("file not loaded");
-        let matching_solns = data["solutions"].filter(s => {
+        let matching_solns = data[rzp]["solutions"].filter(s => {
             if(s["length"] > max_length) return false;
             if(s["trigger"] > max_trigger) return false;
             if(s["trigger"] < min_trigger) return false;
+            if(s["length"] < min_length) return false;
             return true;
         })
 
-        return matching_solns.map(s => data["cases"][s["caseId"]])
+        return [...new Set(matching_solns.map(s => data[rzp]["cases"][s["caseId"]]))]
     }
 
     return {loaded, getCases};

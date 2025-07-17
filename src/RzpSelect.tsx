@@ -16,7 +16,7 @@ function RzpSelect() {
     }
 
     return <select onChange={(event) => updateStateWithDrm(event.target.value)}>
-        {RZPs.map(r => <option key={r}>{r}</option>)}
+        {RZPs.map(r => <option className="text-zinc-800" key={r}>{r}</option>)}
     </select>
 }
 

@@ -1,5 +1,5 @@
 const RZPs = [
-    "4c4e", "4c2e"
+    "4c4e", "7c8e"
 ]
 
 export { RZPs };
