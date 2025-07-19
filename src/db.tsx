@@ -70,9 +70,9 @@ function useDb(){
         })()
     }, []);
 
-    function getCases(rzp, min_length, max_length, min_trigger, max_trigger) {
+    function getCases(rzp: string, min_length: number, max_length: number, min_trigger: number, max_trigger: number): Case[] {
         if(!loaded) throw new Error("file not loaded");
-        let matching_solns = data[rzp]["solutions"].filter(s => {
+        let matching_solns: Solution[] = data[rzp]["solutions"].filter(s => {
             if(s["length"] > max_length) return false;
             if(s["trigger"] > max_trigger) return false;
             if(s["trigger"] < min_trigger) return false;
