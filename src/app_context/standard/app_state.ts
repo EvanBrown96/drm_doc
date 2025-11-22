@@ -5,10 +5,9 @@ import { GenericState, AppState } from '../common_app_state';
 
 export interface StandardTrainerState extends GenericState {
     state: 'training',
-    substate: 'idle' | 'loading_data' | 'awaiting_case' | 'training' | 'showing_solution' | 'invalid_settings',
+    substate: 'idle' | 'getting_case' | 'training' | 'showing_solution' | 'invalid_settings',
     training_parameters: StandardTrainingParameters,
     current_training?: {case: Case, setup: string},
-    training_cases?: Case[],
     queue: {
         time_since_queue: number,
         queued: Case[]
@@ -17,8 +16,7 @@ export interface StandardTrainerState extends GenericState {
 
 export type StandardTrainerAction =
 | { type: 'set_training_params', settings: Partial<StandardTrainingParameters> }
-| { type: 'data_loaded', data: Case[] }
-| { type: 'set_training_case', case: Case, setup: string }
+| { type: 'set_training_case', case: Case }
 | { type: 'see_solutions' }
 | { type: 'queue_case' }
 | { type: 'invalid_settings' }
@@ -51,16 +49,15 @@ function updateTrainingParams(current_params: StandardTrainingParameters, update
 const StandardTrainer = {
     IdleState: (previous_state: AppState, training_params: StandardTrainingParameters): StandardTrainerState => {
         return {...previous_state, state: 'training', substate: 'idle', training_parameters: training_params, 
-                current_training: null, training_cases: null, queue: {queued: [], time_since_queue: 0}}
+                current_training: null, queue: {queued: [], time_since_queue: 0}}
     },
 
-    LoadingState: (previous_state: StandardTrainerState): StandardTrainerState => {
-        return {...previous_state, substate: 'loading_data'}
-    },
-
-    AwaitingState: (previous_state: StandardTrainerState, training_data?: Case[]): StandardTrainerState => {
-        if(!training_data) training_data = previous_state.training_cases;
-        return {...previous_state, substate: 'awaiting_case', training_cases: training_data};
+    GettingCaseState: (previous_state: StandardTrainerState, queue?: {
+        time_since_queue: number,
+        queued: Case[]
+    }): StandardTrainerState => {
+        if(!queue) queue = previous_state.queue;
+        return {...previous_state, substate: 'getting_case', queue}
     },
 
     TrainingState: (previous_state: StandardTrainerState, new_case: Case, queue?: {

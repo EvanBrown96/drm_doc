@@ -4,7 +4,7 @@ export type Solution = {
     eo_breaking: boolean,
     trigger: number,
     solution: string
-}
+};
 
 export type Case = {
     id: number,
@@ -14,4 +14,9 @@ export type Case = {
     tetrad: null | string,
     corners: null | string,
     solutions: Solution[]
-}
+};
+
+export type DrmData = {
+    cases: Case[],
+    solutions: Solution[]
+};

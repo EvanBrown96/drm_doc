@@ -7,11 +7,9 @@ export type DiscardMetadataCase = Case & {is_good: boolean};
 
 export interface DiscardTrainerState extends GenericState {
     state: 'discard',
-    substate: 'idle' | 'loading_data' | 'awaiting_case' | 'training' | 'correct_choice' | 'incorrect_choice' | 'invalid_settings',
+    substate: 'idle' | 'getting_case' | 'training' | 'correct_choice' | 'incorrect_choice' | 'invalid_settings',
     training_parameters: DiscardTrainingParameters,
     current_training?: {case: DiscardMetadataCase, setup: string },
-    good_cases?: Case[],
-    bad_cases?: Case[]
     queue: {
         time_since_queue: number,
         queued: DiscardMetadataCase[]
@@ -39,8 +37,8 @@ const DEFAULT_DISCARD: DiscardTrainingParameters =
 
 export type DiscardTrainerAction =
 | { type: 'set_training_params', settings: Partial<DiscardTrainingParameters> }
-| { type: 'discard_data_loaded', good_cases: Case[], bad_cases: Case[] }
-| { type: 'set_discard_training_case', case: Case, setup: string }
+| { type: 'get_random_case' }
+| { type: 'set_discard_training_case', case: DiscardMetadataCase }
 | { type: 'queue_case' }
 | { type: 'invalid_settings' }
 | { type: 'guess_yes' }
@@ -60,16 +58,15 @@ const DiscardTrainer = {
     IdleState: (previous_state: AppState, training_params: DiscardTrainingParameters): DiscardTrainerState => {
         let statistics: DiscardTrainerState["statistics"] = getItem('discard_stats', ZERO_STATS);
         return {...previous_state, state: 'discard', substate: 'idle', training_parameters: training_params, 
-                current_training: null, good_cases: null, bad_cases: null, queue: {queued: [], time_since_queue: 0}, statistics}
+                current_training: null, queue: {queued: [], time_since_queue: 0}, statistics}
     },
 
-    LoadingState: (previous_state: DiscardTrainerState): DiscardTrainerState => {
-        return {...previous_state, substate: 'loading_data'}
-    },
-
-    AwaitingState: (previous_state: DiscardTrainerState, training_data: {good_cases: Case[], bad_cases: Case[]}): DiscardTrainerState => {
-        if(!training_data) training_data = {good_cases: previous_state.good_cases, bad_cases: previous_state.bad_cases};
-        return {...previous_state, substate: 'awaiting_case', good_cases: training_data.good_cases, bad_cases: training_data.bad_cases};
+    GettingCaseState: (previous_state: DiscardTrainerState, queue?: {
+        time_since_queue: number,
+        queued: DiscardMetadataCase[]
+    }): DiscardTrainerState => {
+        if(!queue) queue = previous_state.queue;
+        return {...previous_state, substate: 'getting_case', queue};
     },
 
     TrainingState: (previous_state: DiscardTrainerState, new_case: DiscardMetadataCase, queue?: {

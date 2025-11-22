@@ -1,5 +1,4 @@
 import { useReducer, createContext, useContext, useEffect } from 'react';
-import { useDb } from '../data_access/db';
 import { useCubelib } from '../cubelib_loader';
 import type { Case } from '../types/types';
 import { AppState, AppStateAction, setupState } from './common_app_state';
@@ -8,13 +7,14 @@ import { StandardTrainerState, StandardTrainer, DEFAULT_TRAINING } from './stand
 import { getItem, setItem } from '../persist';
 import { standardStateReducer } from './standard/reducer';
 import { discardStateReducer } from './discard/reducer';
+import { useDrmService } from '../data_access/drm_data_service';
 
 let AppStateContext = createContext(null);
 let AppDispatchContext = createContext(null);
 
 function AppContextProvider({ children }) {
 
-    let {getCases} = useDb();
+    let drm_service = useDrmService();
     let {loaded: cubeLibLoaded} = useCubelib();
 
     useEffect(() => {
@@ -27,7 +27,7 @@ function AppContextProvider({ children }) {
 
     useEffect(() => {
         if(state.state == 'training' || state.state == 'discard') {
-            if(state.substate != 'loading_data') return;
+            if(state.substate != 'getting_case') return;
         }
         
 
@@ -45,33 +45,42 @@ function AppContextProvider({ children }) {
                 min_length = state.training_parameters.min_trigger;
                 max_length = state.training_parameters.max_length;
                 eo_breaking = state.training_parameters.eo_breaking;
-                const training_data = await getCases(
-                    drm, min_length, max_length, min_trigger, max_trigger, eo_breaking
-                );
-                
-                if(training_data.length < 1) dispatch({type: "invalid_settings"});
-                else dispatch({type: "data_loaded", data: training_data});
+
+                try{
+                    const new_case = await drm_service.getRandomCase(drm, min_length, max_length, min_trigger, max_trigger, eo_breaking);
+                    dispatch({type: "set_training_case", case: new_case})
+                }
+                catch(e) {
+                    dispatch({type: "invalid_settings"});
+                }
             }
             else if(state.state == 'discard') {
-                drm = state.training_parameters.drm;
-                min_trigger = 1;
-                max_trigger = state.training_parameters.max_length;
-                min_length = 0;
-                max_length = state.training_parameters.max_length;
-                eo_breaking = true;
                 
-                const good_cases = await getCases(
-                    drm, min_length, max_length, min_trigger, max_trigger, eo_breaking
-                );
-                if(good_cases.length < 1) {
-                    dispatch({type: "invalid_settings"});
-                    return;
-                }
-                const bad_cases = await getCases(
-                    drm, max_length+1, Infinity, min_trigger, Infinity, eo_breaking
-                ) 
-                dispatch({type: "discard_data_loaded", good_cases, bad_cases})
+                let choose_good_case = (Math.random() * 100 < state.training_parameters.good_case_ratio);
 
+                drm = state.training_parameters.drm;
+                eo_breaking = true;
+
+                if(choose_good_case) {
+                    min_trigger = 1;
+                    max_trigger = state.training_parameters.max_length;
+                    min_length = 0;
+                    max_length = state.training_parameters.max_length;
+                }
+                else {
+                    min_length = max_length+1;
+                    max_length = Infinity;
+                    min_trigger = min_trigger;
+                    max_trigger = Infinity;
+                }
+                
+                try{
+                    const new_case = await drm_service.getRandomCase(drm, min_length, max_length, min_trigger, max_trigger, eo_breaking);
+                    dispatch({type: "set_discard_training_case", case: {...new_case, is_good: choose_good_case}})
+                }
+                catch(e) {
+                    dispatch({type: "invalid_settings"});
+                }
             }
         })();
 
